@@ -9,6 +9,8 @@ from telegram import (
     Update,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
 )
 from telegram.ext import (
     Application,
@@ -115,17 +117,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "history": []
     })
 
-    keyboard = [
+    # reply-кнопка для быстрого рестарта
+    reply_keyboard = [[KeyboardButton("🔄 Начать заново")]]
+
+    inline_keyboard = [
         [InlineKeyboardButton("🧑‍🎤 Выбрать персону", callback_data="pick_persona")],
         [InlineKeyboardButton("💬 Начать чат", callback_data="begin_chat")],
         [InlineKeyboardButton("📄 Сводка (/summary)", callback_data="summary_hint")],
     ]
+
     await update.message.reply_text(
         "Привет! Я — «Виртуальный респондент».\n"
         "• Выбери персону (или оставь по умолчанию)\n"
         "• Напиши любой вопрос — отвечу от первого лица\n"
         "• В конце используй /summary для итогов",
-        reply_markup=InlineKeyboardMarkup(keyboard),
+        reply_markup=ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+    )
+
+    await update.message.reply_text(
+        "Выбери действие:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard),
     )
 
 
@@ -210,6 +221,11 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text.strip()
     state = get_user_state(context)
+
+    # обработка кнопки «Начать заново»
+    if user_text.lower() in ["начать заново", "🔄 начать заново"]:
+        await start(update, context)
+        return
 
     # если бот ждёт уточнение после выбора персоны
     if state.get("awaiting_segment_details"):
